@@ -1,87 +1,91 @@
 ---
-name: research-field-reviewer-openreview
-description: Generate rigorous, evidence-grounded computer-science paper reviews by combining general top-conference review criteria with research-field-specific reviewer concerns mined from recent ICLR OpenReview forums. Use when Codex needs to review a paper, build a reviewer checklist for a specific research area, audit novelty or A+B incremental contributions, synthesize OpenReview reviewer questions and accepted-paper author responses, or advise how to revise a paper at light, moderate, and major revision levels.
+name: research-review-skill-factory
+description: Build custom peer-review skills for specific research areas, problem families, and method combinations using OpenReview evidence. Use when Codex needs a compact meta-review skill factory that takes a research field or topic cluster, retrieves and synthesizes recent ICLR/OpenReview reviewer concerns and accepted-paper author response patterns, then generates a ClawHub-ready reviewer skill tailored to that field/problem rather than to one specific manuscript.
 license: MIT-0
 metadata:
   openclaw:
-    emoji: "review"
+    emoji: "review-factory"
     requires:
       anyBins:
         - python3
         - python
 ---
 
-# Research Field Reviewer OpenReview
+# Research Review Skill Factory
 
-Use this skill to produce a professional review plan or full review for a paper in a specific research field. The output must be source-grounded: separate paper evidence, public OpenReview evidence, and your own reviewer inference.
+Use this meta-skill to build a custom review skill for a specific research area, problem family, or method combination. It is broader than a manuscript-specific builder: the generated child skill should help review future papers in the selected area.
 
-## Quick Start
+## Core Idea
 
-1. Check the current date first. For ICLR evidence, define the default recent window as the current year and two previous years if those venues are public; otherwise use the three most recent public ICLR years.
-2. Identify the paper's field from the user request, title/abstract, keywords, task, method family, datasets, and closest related work. Preserve the narrow field before broadening to ML/AI.
-3. If OpenReview field evidence is needed, run:
+Create a field/problem-specific reviewer skill:
 
-```bash
-python scripts/fetch_openreview_field_evidence.py --field "<research field>" --output "<workdir>/openreview_field_evidence"
+```text
+research area + problem set -> area profile -> OpenReview queries -> reviewer concern patterns -> custom area reviewer skill
 ```
 
-Use `python3` if `python` is unavailable. Read the generated `field_evidence.md` and `field_evidence.json`.
+Examples:
 
-4. Load only the references needed for the task:
-   - `references/general_review_lenses.md` for general top-conference review criteria.
-   - `references/openreview_field_protocol.md` for ICLR/OpenReview retrieval, evidence labels, and synthesis rules.
-   - `references/subtle_logic_flaws.md` when auditing hidden logic weaknesses.
+- `ssfl-diffusion-representation-reviewer-openreview`
+- `federated-ssl-privacy-reviewer-openreview`
+- `spectral-representation-theory-reviewer-openreview`
+- `llm-agent-benchmark-reviewer-openreview`
 
-## Required Output Structure
+## Workflow
 
-For a full review, produce these sections:
+1. **Define the research area and problem set**
+   - Ask for or infer the area scope: narrow field, parent fields, problem family, method families, theory objects, experiment settings, and target venues.
+   - Use `references/research_area_profile_schema.md`.
+   - Preserve narrow terms before broad terms.
 
-1. **Paper Thesis And Scope**
-   - State the paper's claimed contribution in one sentence.
-   - Identify the exact field, task, assumptions, evidence type, and claimed novelty.
-   - Mark missing source material as `not provided` or `not reported`; do not invent it.
+2. **Generate OpenReview query plan**
+   - Create 8-20 queries covering the exact area phrase, subproblems, method families, theory or benchmark keywords, closest baseline families, and broader fallback fields.
+   - Check the current date and select the current ICLR year plus two previous public ICLR years unless the user specifies years.
 
-2. **General Top-Conference Review**
-   - Cover soundness, novelty/originality, significance, methodology, experiments, reproducibility, clarity, related work, limitations, and ethics/societal risk when relevant.
-   - Convert vague criticism into actionable evidence requests.
-   - Include 3-5 author questions only when answers could change the review or clarify a critical weakness.
+3. **Retrieve public OpenReview evidence**
+   - Use:
 
-3. **Field-Specific OpenReview Review**
-   - Use recent ICLR evidence from accepted, rejected, withdrawn, and desk-rejected papers when available.
-   - Use reviewer questions and concerns from all public statuses.
-   - Use author responses only from accepted papers.
-   - Summarize concerns by category, not paper-by-paper unless the user asks for a case list.
-   - Attach evidence IDs or forum URLs for every field-specific pattern.
+```bash
+python scripts/fetch_openreview_field_evidence.py --field "<query>" --years <Y1> <Y2> <Y3> --output "<evidence-dir>/<query-slug>"
+```
 
-4. **Subtle Logic Flaws**
-   - Apply `references/subtle_logic_flaws.md`.
-   - Report each flaw as: flaw type, paper location, why it matters, evidence needed, and review wording.
+   - Collect reviewer concerns from accepted, rejected, withdrawn, and desk-rejected public submissions when available.
+   - Use author responses only from accepted papers by default.
 
-5. **A+B / Incremental-Innovation Audit**
-   - Decide whether the paper is mainly: new problem, new method, new theory, new evaluation, A+B combination, transfer to a new setting, engineering consolidation, or boundary-pushing scientific contribution.
-   - For A+B or incremental work, test whether the paper makes the combination scientifically necessary or merely convenient.
-   - Ask whether it identifies a broken assumption, unavailable mechanism, new constraint, or empty cell that changes the field's understanding.
+4. **Synthesize an area review-response bank**
+   - Cluster reviewer concerns by category.
+   - For each pattern, record trigger terms, reviewer concern, accepted-paper response pattern, what future papers in this area must show, and representative evidence.
+   - Keep direct quotes short; paraphrase patterns and cite forum URLs.
 
-6. **Revision Advice**
-   - Provide three revision levels:
-     - Light revision: wording, scope, related-work positioning, missing details, clearer figures/tables.
-     - Moderate revision: extra baselines, ablations, diagnostics, sensitivity, statistical tests, threat/scope clarification.
-     - Major revision: new experimental setting, stronger theory, direct mechanism test, benchmark redesign, dataset/resource release, or reframed contribution.
-   - Tie each suggestion to a reviewer concern and likely impact on acceptability.
+5. **Generate the child area reviewer skill**
+   - Use `scripts/init_research_area_review_skill.py` with a filled area profile JSON.
+   - The generated child skill must include `SKILL.md`, `agents/openai.yaml`, `references/research_area_profile.md`, `references/openreview_review_response_bank.md`, `references/review_output_contract.md`, `references/subtle_logic_flaws.md`, `LICENSE.txt`, and `_meta.json`.
 
-7. **Evidence Appendix**
-   - List paper evidence, OpenReview evidence, and external reviewer-guideline evidence separately.
-   - For OpenReview, include year, status, title, forum URL, note type, short quoted or paraphrased concern, and how it informs the current review.
-   - Keep direct quotes short and use paraphrase for synthesis.
+6. **Validate and package**
+   - Run `quick_validate.py` on the child skill.
+   - Run syntax checks on scripts.
+   - Package the child skill only after confirming there are no raw evidence caches, PDFs, manuscripts, pycache, or private data.
 
-## Evidence Discipline
+## Generated Child Skill Requirements
 
-- Treat public OpenReview text as precedent evidence, not as a universal truth.
-- Do not cite rejected-paper author responses unless they are public and the user explicitly asks; the default rule is accepted-paper author responses only.
-- Do not overfit to ICLR if the target venue is different; use ICLR as a high-quality ML review prior, then adapt to the user's venue.
-- If retrieval is incomplete, state exactly what was attempted, what was missing, and whether the field-specific synthesis is representative or only illustrative.
-- Never fabricate reviewer scores, decisions, replies, OpenReview IDs, or paper titles.
+The child skill must instruct future reviewers to:
 
-## Review Tone
+- classify a submitted paper inside the target research area;
+- retrieve the local area review-response bank before writing review comments;
+- generate area-specific reviewer concerns and rebuttal/revision guidance;
+- cite OpenReview precedent with year, status, title, forum URL, and note type;
+- audit novelty, soundness, baselines, reproducibility, A+B incrementality, and subtle logic flaws;
+- provide light, moderate, and major revision paths.
 
-Write as a skeptical but constructive expert reviewer. Lead with the strongest decision-relevant issues, avoid generic praise, and frame weaknesses as evidence gaps, causal gaps, scope gaps, or interpretation gaps.
+## Evidence Rules
+
+- Never fabricate OpenReview titles, forum IDs, decisions, scores, or author responses.
+- Treat OpenReview evidence as precedent, not as law.
+- Do not include raw review dumps in the generated child skill.
+- If evidence is sparse, label the bank as `limited evidence` and include a broader fallback area.
+
+## References
+
+- `references/research_area_profile_schema.md`: area/problem profile schema.
+- `references/openreview_area_evidence_workflow.md`: retrieval and synthesis protocol.
+- `references/generated_area_review_skill_contract.md`: generated child skill contract.
+- `references/subtle_logic_flaws.md`: reusable hidden-weakness checklist.

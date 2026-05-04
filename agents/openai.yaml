@@ -1,4 +1,4 @@
 interface:
-  display_name: "Research Field Reviewer OpenReview"
-  short_description: "Build evidence-grounded ICLR-style reviews by field."
-  default_prompt: "Use $research-field-reviewer-openreview to review this paper by combining general top-conference criteria with field-specific OpenReview evidence."
+  display_name: "Research Review Skill Factory"
+  short_description: "Build custom review skills for research areas."
+  default_prompt: "Use $research-review-skill-factory to build a custom OpenReview-grounded review skill for this research area and problem set."

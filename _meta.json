@@ -1,24 +1,22 @@
 {
-  "name": "research-field-reviewer-openreview",
+  "name": "research-review-skill-factory",
   "version": "1.0.0",
   "license": "MIT-0",
-  "summary": "Evidence-grounded computer-science paper review skill combining general top-conference criteria, field-specific ICLR OpenReview reviewer concerns, accepted-paper author responses, subtle logic flaw audits, and revision advice.",
+  "summary": "A meta-review skill factory that builds custom OpenReview-grounded reviewer skills for specific research areas, problem families, and method combinations.",
   "categories": [
     "Research",
     "Peer Review",
     "OpenReview",
-    "Computer Science",
+    "Skill Builder",
     "Academic Writing"
   ],
   "tags": [
+    "meta-skill",
+    "research-area",
     "paper-review",
     "openreview",
-    "iclr",
-    "reviewer",
+    "review-skill-builder",
     "rebuttal",
-    "novelty",
-    "soundness",
-    "subtle-logic-flaws",
     "clawhub",
     "mit-0"
   ]
