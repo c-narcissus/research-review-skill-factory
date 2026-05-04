@@ -1,7 +1,7 @@
 # Publishing To ClawHub
 
 Skill slug: `research-review-skill-factory`
-Version: `1.0.0`
+Version: `1.0.1`
 License: `MIT-0`
 
 ## Package Contents
@@ -21,5 +21,5 @@ Do not include generated child skills, raw OpenReview caches, PDFs, manuscripts,
 ## Recommended Publish Command
 
 ```bash
-clawhub skill publish ./research-review-skill-factory --version 1.0.0
+clawhub skill publish ./research-review-skill-factory --version 1.0.1
 ```

@@ -1,6 +1,6 @@
 {
   "name": "research-review-skill-factory",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT-0",
   "summary": "A meta-review skill factory that builds custom OpenReview-grounded reviewer skills for specific research areas, problem families, and method combinations.",
   "categories": [

@@ -1,10 +1,10 @@
-# ClawHub 发布页信息：research-review-skill-factory v1.0.0
+# ClawHub 发布页信息：research-review-skill-factory v1.0.1
 
 | Field | Value |
 | --- | --- |
 | Name / Slug | `research-review-skill-factory` |
 | Display name | Research Review Skill Factory |
-| Version | `1.0.0` |
+| Version | `1.0.1` |
 | License | `MIT-0` |
 | Category | Research / Peer Review / OpenReview / Skill Builder |
 

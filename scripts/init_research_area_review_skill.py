@@ -30,11 +30,27 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
+SKILL_NAME_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
+
 
 def slugify(text: str, fallback: str = "research-area") -> str:
     normalized = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     normalized = re.sub(r"-{2,}", "-", normalized)
     return normalized[:48].strip("-") or fallback
+
+
+def validate_skill_name(skill_name: str) -> str:
+    skill_path = Path(skill_name)
+    if skill_path.is_absolute() or skill_path.drive or len(skill_path.parts) != 1:
+        raise ValueError("--skill-name must be a single directory name, not a path")
+    if skill_name in {".", ".."}:
+        raise ValueError("--skill-name must not be '.' or '..'")
+    if not SKILL_NAME_RE.fullmatch(skill_name):
+        raise ValueError(
+            "--skill-name must be 1-64 characters of lowercase letters, numbers, "
+            "or hyphens, and must start and end with a letter or number"
+        )
+    return skill_name
 
 
 def read_spec(path: Path) -> dict[str, Any]:
@@ -207,11 +223,20 @@ def main(argv: list[str]) -> int:
 
     spec = read_spec(Path(args.spec))
     base_slug = spec.get("area_slug") or slugify(spec.get("area_name", "research-area"))
-    skill_name = args.skill_name or f"{slugify(base_slug)}-reviewer-openreview"
+    if args.skill_name:
+        skill_name = validate_skill_name(args.skill_name)
+    else:
+        skill_name = f"{slugify(base_slug)}-reviewer-openreview"
     if len(skill_name) > 64:
         skill_name = skill_name[:64].strip("-")
+    skill_name = validate_skill_name(skill_name)
 
-    skill_dir = Path(args.output_dir) / skill_name
+    output_dir = Path(args.output_dir).resolve()
+    skill_dir = (output_dir / skill_name).resolve()
+    try:
+        skill_dir.relative_to(output_dir)
+    except ValueError as exc:
+        raise ValueError("Resolved skill directory escapes --output-dir") from exc
     if skill_dir.exists():
         raise FileExistsError(f"Refusing to overwrite existing skill directory: {skill_dir}")
 
