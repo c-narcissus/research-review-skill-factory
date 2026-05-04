@@ -1,0 +1,25 @@
+{
+  "name": "research-field-reviewer-openreview",
+  "version": "1.0.0",
+  "license": "MIT-0",
+  "summary": "Evidence-grounded computer-science paper review skill combining general top-conference criteria, field-specific ICLR OpenReview reviewer concerns, accepted-paper author responses, subtle logic flaw audits, and revision advice.",
+  "categories": [
+    "Research",
+    "Peer Review",
+    "OpenReview",
+    "Computer Science",
+    "Academic Writing"
+  ],
+  "tags": [
+    "paper-review",
+    "openreview",
+    "iclr",
+    "reviewer",
+    "rebuttal",
+    "novelty",
+    "soundness",
+    "subtle-logic-flaws",
+    "clawhub",
+    "mit-0"
+  ]
+}

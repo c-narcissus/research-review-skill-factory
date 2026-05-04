@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Field Reviewer OpenReview"
+  short_description: "Build evidence-grounded ICLR-style reviews by field."
+  default_prompt: "Use $research-field-reviewer-openreview to review this paper by combining general top-conference criteria with field-specific OpenReview evidence."
