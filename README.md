@@ -13,6 +13,8 @@
 
 ## 使用方法（假设已安装）
 
+建议在 **Codex** 中使用这个元 skill 来生成领域审稿 skill。
+
 安装后，可以直接在对话中调用：
 
 ```text
@@ -33,6 +35,8 @@
 4. 归纳领域 review-response bank；
 5. 生成并验证新的领域审稿 skill。
 
+生成的领域审稿 skill 建议在 **ChatGPT 网页版**中使用，并开启 **extended thinking** 模式。使用时，将生成的领域审稿 skill ZIP 文件放入 ChatGPT 网页版项目的 **Sources** 里，然后在对话框中明确说明：请按照这个 ZIP 文件里的 skill 对目标论文进行审稿。
+
 ---
 
 ## English Overview
@@ -47,6 +51,8 @@ Its design goals are:
 4. **Generate a child review skill**: package the area profile, evidence bank, subtle logic flaw checks, and review output contract into a reusable skill.
 
 ## Usage (Assuming Installed)
+
+This meta-skill is intended to be used in **Codex** to generate research-area-specific reviewer skills.
 
 After installing the skill, invoke it directly:
 
@@ -67,6 +73,8 @@ The usual workflow is:
 3. retrieve or read relevant OpenReview evidence;
 4. synthesize an area-specific review-response bank;
 5. generate and validate a new review skill for that area.
+
+The generated research-area-specific reviewer skill is best used in **ChatGPT web** with **extended thinking** enabled. Put the generated reviewer skill ZIP file into the ChatGPT project **Sources**, then ask ChatGPT to review the target paper according to the skill in that ZIP file.
 
 ## License
 
