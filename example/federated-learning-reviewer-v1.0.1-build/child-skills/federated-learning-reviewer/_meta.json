@@ -1,0 +1,8 @@
+{
+  "name": "federated-learning-reviewer",
+  "version": "1.0.1",
+  "license": "MIT-0",
+  "source_meta_skill": "research-review-skill-factory",
+  "area_name": "Federated Learning",
+  "evidence_mode": "contrastive"
+}

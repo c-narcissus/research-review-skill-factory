@@ -1,80 +1,201 @@
 # Research Review Skill Factory
 
+当前版本 / Current package version: `1.1.1`.
+
 ## 中文简介
 
-`research-review-skill-factory` 是一个用于**生成领域级审稿 skill 的元 skill**。它不是直接审某一篇论文，而是面向一个特定研究领域、问题族或方法组合，构建一个可复用的个性化审稿 skill。
+`research-review-skill-factory` 是一个用于生成领域级审稿 skill 的元 skill。最早版本主要是 OpenReview-grounded：定义研究领域画像，检索公开审稿意见，归纳 reviewer concerns 和 accepted-paper response patterns，再生成一个可复用的领域审稿 skill。
 
-它的设计目的：
+最新版本已经升级为一个更完整的“证据编排型审稿 skill 工厂”：它仍然优先使用 OpenReview 公开审稿证据，但会先做严格的证据充足性门控；当 OpenReview 证据不足时，会切换到匿名化的高水平论文 vs 一般水平论文对照式审稿品味建模；生成出的 child skill 在实际审稿时还必须动态检索顶会顶刊相关工作、执行全文阅读 gate，并输出独立的细微逻辑问题审计。
 
-1. **定义研究领域画像**：明确研究方向、核心问题、方法家族、理论对象、实验设置、baseline 家族和评价指标。
-2. **检索 OpenReview 证据**：根据领域关键词收集近年 ICLR/OpenReview 公开审稿意见和录用论文作者回复。
-3. **归纳审稿模式**：把历史 reviewer concerns 和 accepted-paper response patterns 整理成领域专属 review-response bank。
-4. **生成子审稿 skill**：输出一个可安装、可复用的领域审稿 skill，用于审该方向后续论文。
+这个元 skill 的主要使用场景是在 Codex 里用自然语言调用：让 Codex 完成证据检索、样本对照建模、child skill 生成、打包和验证。生成后的 child skill 也面向 Codex 审稿流程使用。
 
-## 使用方法（假设已安装）
+![Research Review Skill Factory 中文架构图](diagram_ch.png)
 
-建议在 **Codex** 中使用这个元 skill 来生成领域审稿 skill。
+## 相比最早版本的重大改进
 
-安装后，可以直接在对话中调用：
+1. **从 OpenReview-only 升级为 OpenReview-first**
+   - 默认使用运行时当前年份和前两年作为 OpenReview 检索窗口。
+   - 每个研究领域必须独立满足不少于 `20` 篇相关论文且带公开 review note 的门槛。
+   - 多领域请求不能混合凑数；某个领域证据不足，只让该领域进入 fallback。
+
+2. **增加证据稀疏时的对照式审稿品味 fallback**
+   - 用户可提供高水平样本和一般水平样本来源，例如顶会/顶刊列表、公开 URL、或本地文件夹。
+   - factory 会生成匿名样本 manifest 和本地私有映射。
+   - child skill 只保留抽象化的 reviewer taste profile，不保留论文标题、作者、文件名、URL、路径、DOI、arXiv ID 或 private source map。
+   - 代码和文件名中保留的 `contrastive` 指“样本对照”，不是机器学习中的 contrastive representation learning。
+
+3. **高/一般样本对照不再只是比较样本，而是先审稿、再比较、再归纳**
+   - 每个稀疏领域至少需要 `20` 个同领域 high/general 训练 pair。
+   - 默认还需要 document-level held-out validation：验证 pair 数大于 `20` 且至少占选定 pair 数的 `10%`。
+   - 单篇论文先 blind-review，不允许直接利用 high/general 标签；标签只在 pair comparison 阶段揭示。
+   - reviewer taste 必须从已完成的 pair reviews 中归纳，并通过训练覆盖率、稳定性和验证成功率检查。
+
+4. **增加可替换的 deep-read matched contrastive module**
+   - 适用于高水平样本较少、质量要求更高、需要逐篇精读的场景。
+   - 模块边界拆成 `domain_adapter`、`deep_reader`、`subfield_matcher`、`pair_comparator`、`taste_synthesizer`、`privacy_filter`。
+   - 深读报告、pair 分析和 rationale report 是外部构建产物，不进入 child skill。
+
+5. **生成的 child skill 增加运行时文献上下文模块**
+   - 审稿时根据目标论文的问题、相关工作、方法 lineage、baseline、dataset 和 claims 动态检索文献。
+   - 相关工作优先来自顶会、顶刊、官方 proceedings 和 OpenReview 等公开评审来源。
+   - canonical/high-impact work 用于补充问题脉络和 baseline lineage。
+   - preprint 只作为最新线索或补充证据，不能替代已有的正式顶会顶刊版本。
+
+6. **新增 full-text reading gate**
+   - 对最近邻相关工作、预期 baseline、用于 novelty 或 missing-comparison 判断的文献，能访问全文时必须打开或下载全文并阅读关键部分。
+   - 文献覆盖状态必须标记为 `full-text-read`、`partial-full-text`、`metadata-only` 或 `inaccessible`。
+   - metadata-only 文献不能支撑强 novelty、baseline 或 missing-comparison 结论。
+
+7. **细微逻辑问题审计成为独立强制输出**
+   - child skill 必须输出 standalone subtle logic flaw audit 表格。
+   - 不能只把细微逻辑问题混入普通 weakness list。
+   - 不适用的 checklist 项也要显式标记为 `not applicable` 并给出简短理由。
+
+8. **隐私、打包和测试边界更严格**
+   - child skill 不打包 raw PDFs、OpenReview raw cache、pair review banks、deep-read reports、pair analyses、rationale reports、validation reports、reading notes、sample manifests 或 `private_source_map.json`。
+   - factory 增加了脚本接口和回归测试，防止证据门控、匿名化、full-text gate 和独立 subtle-logic 输出退化。
+
+## 核心设计思想
+
+最新 factory 的核心思想是：**把领域审稿能力从静态模板升级为可审计的证据流水线**。
+
+它由五层组成：
+
+1. **静态领域画像**：定义领域、问题族、方法家族、理论对象、实验设置、baseline、metric 和目标 venue。
+2. **证据门控**：先判断 OpenReview 公开审稿证据是否足够；足够则生成 OpenReview review-response bank，不足则进入高/一般样本对照建模 fallback。
+3. **可替换样本对照模块**：用高水平/一般水平样本的匿名配对审稿来归纳 reviewer taste，并允许后续替换 deep reader、matcher 或 synthesizer。
+4. **运行时文献检索模块**：child skill 审每篇新论文时，必须根据该论文动态构建顶会顶刊相关文献上下文。
+5. **硬性输出契约**：强制区分 target-paper evidence、runtime literature evidence、OpenReview 或样本对照 precedent 和 reviewer inference，并输出 claim-support matrix、A+B novelty audit、standalone subtle logic audit、light/moderate/major revision path。
+
+换句话说，child skill 不应该像一套一成不变的 checklist；它应该像一个领域审稿人：知道本领域历史审稿品味，也会在审具体论文时重新查最近和最相关的顶会顶刊工作。
+
+## 使用方法（自然语言调用）
+
+这个仓库里的 skill 面向 Codex 使用。在 Codex 对话中可以直接调用这个元 skill：
 
 ```text
-使用 $research-review-skill-factory，为“半监督联邦学习 + 表征学习理论”这个研究方向生成一个专属审稿 skill。请结合近三年 ICLR OpenReview 的相关审稿意见和录用论文作者回复，整理 reviewer 关注点、常见 rebuttal 策略、细粒度逻辑漏洞检查项，以及 light / moderate / major 三档修改建议。
+使用 $research-review-skill-factory，为“半监督联邦学习 + 表征学习理论”生成一个专属审稿 skill。
+请先对每个研究领域分别执行最近三年的 OpenReview 证据门控：每个领域至少需要 20 篇带公开审稿意见的相关论文。
+如果某个领域证据不足，请使用我提供的 high-level 和 general-level 样本文件夹进行匿名对照式审稿品味建模，并生成 child skill。
+生成的 child skill 需要包含 runtime literature context module：审稿时优先检索顶会、顶刊、官方 proceedings 和 OpenReview 相关工作，并执行 full-text reading gate。
 ```
 
-一个更短的例子：
+短例子：
 
 ```text
-使用 $research-review-skill-factory，为 graph neural networks and oversmoothing 这个方向生成一个 OpenReview-grounded 审稿 skill。
+使用 $research-review-skill-factory，为 graph neural networks and oversmoothing 生成一个 OpenReview-first 审稿 skill。
+如果 OpenReview 证据不足，则切换到 high/general 样本对照式审稿品味建模。
 ```
 
-生成流程通常包括：
+多领域例子：
 
-1. 生成研究领域 profile；
-2. 规划 OpenReview 检索关键词；
-3. 下载或读取相关 OpenReview 证据；
-4. 归纳领域 review-response bank；
-5. 生成并验证新的领域审稿 skill。
+```text
+使用 $research-review-skill-factory，为 “federated semi-supervised learning” 和 “representation learning theory” 生成审稿 skill。
+两个领域必须分别满足最近三年 20 篇公开 review 论文的门槛，不能合并计数。
+```
 
-生成的领域审稿 skill 建议在 **ChatGPT 网页版**中使用，并开启 **extended thinking** 模式。使用时，将生成的领域审稿 skill ZIP 文件放入 ChatGPT 网页版项目的 **Sources** 里，然后在对话框中明确说明：请按照这个 ZIP 文件里的 skill 对目标论文进行审稿。
+样本对照建模例子：
 
----
+```text
+使用 $research-review-skill-factory，为 federated learning 生成审稿 skill。
+OpenReview 证据不足时，使用 ./FL_PDFs/录用 作为 high-level 样本，使用 ./FL_PDFs/没录用_撤稿 作为 general-level 样本。
+请先对样本匿名化，然后选择同领域 high/general pairs，逐篇 blind-review，再做 pairwise comparison，最后归纳 reviewer taste。这里的 `contrastive` 只表示审稿样本对照，不是机器学习中的 contrastive representation learning。
+```
+
+严格深读样本对照例子：
+
+```text
+使用 $research-review-skill-factory，为 privacy-preserving federated fine-tuning 生成审稿 skill。
+请使用 deep-read matched contrastive module：先精读 curated high-level papers，再为每篇 high-level paper 匹配同子领域或近邻子领域的 general-level paper，逐对比较并归纳审稿关注点。
+详细 deep-reading reports、pair analyses 和 rationale reports 只保留为外部构建产物，不进入 child skill。
+```
+
+生成后的 child skill 使用例子：
+
+```text
+请用 federated-learning-reviewer 审稿这篇论文。
+审稿前请先构建 runtime literature context pack，优先检索顶会/顶刊/官方 proceedings/OpenReview 相关工作。
+对最近邻相关工作和预期 baseline 执行 full-text reading gate，并在最终报告中单独输出 Subtle Logic Flaw Audit。
+```
+
+## 示例：联邦学习审稿 child skill
+
+`example/` 目录里放了一个已经生成好的联邦学习审稿 skill 示例：[example/federated-learning-reviewer-v1.0.1-build/](example/federated-learning-reviewer-v1.0.1-build/)。
+
+其中 [child-skills/federated-learning-reviewer/](example/federated-learning-reviewer-v1.0.1-build/child-skills/federated-learning-reviewer/) 是生成后的 Codex child skill，[federated-learning-reviewer-v1.0.1.zip](example/federated-learning-reviewer-v1.0.1-build/federated-learning-reviewer-v1.0.1.zip) 是对应的可分发包，[inputs/](example/federated-learning-reviewer-v1.0.1-build/inputs/) 保留了构建该示例用到的领域画像和匿名化审稿品味输入。
+
+## 生成流程概览
+
+1. 生成每个研究领域的 profile。
+2. 为每个领域规划 8-20 个 OpenReview queries。
+3. 使用运行时当前年份和前两年检索 OpenReview 公开审稿证据。
+4. 对每个领域单独检查 `20` 篇公开 review 论文门槛。
+5. 证据充足时，生成 OpenReview review-response bank。
+6. 证据不足时，选择样本对照模块：默认高通量 train/validation pair workflow，或严格 deep-read matched workflow。
+7. 生成匿名 reviewer taste profile，并把详细 pair/rationale/validation 产物留在外部。
+8. 给 child skill 加入 runtime literature context module。
+9. 生成 child skill，并检查没有 raw evidence、PDF、private map、路径或样本身份信息进入包。
+
+## 生成的 child skill 应该做到什么
+
+生成出的领域审稿 skill 在审具体论文时应当：
+
+- 判断目标论文属于该领域的哪个问题族、方法族和实验设置。
+- 读取静态领域 profile、OpenReview bank、样本对照 reviewer taste profile 或两者。
+- 构建 runtime literature context pack，而不是只依赖静态模板。
+- 优先检索顶会、顶刊、官方 proceedings、OpenReview、canonical/high-impact work。
+- 对最近邻相关工作和预期 baseline 执行 full-text reading gate。
+- 区分 `full-text-read`、`partial-full-text`、`metadata-only` 和 `inaccessible`。
+- 不用 metadata-only 文献支撑强 novelty、baseline 或 missing-comparison 判断。
+- 输出 claim-support matrix、A+B/incremental novelty audit、standalone subtle logic flaw audit、reviewer questions、rebuttal plan 和 light/moderate/major revision advice。
 
 ## English Overview
 
-`research-review-skill-factory` is a **meta-skill for building research-area-specific review skills**. It does not review one paper directly. Instead, it creates a reusable reviewer skill for a specific research area, problem family, or method combination.
+`research-review-skill-factory` is a meta-skill for building reusable, research-area-specific reviewer skills. It does not directly review one manuscript. It creates a child reviewer skill for a field, problem family, or method combination, and that child skill can then review future papers in the area.
 
-Its design goals are:
+The intended operating environment is Codex: invoke this meta-skill in Codex with natural language, let Codex run the evidence workflow, generate and validate the child skill, and then use the generated child skill inside Codex review sessions.
 
-1. **Define the research-area profile**: fields, problems, method families, theory objects, experimental settings, baseline families, and metrics.
-2. **Retrieve OpenReview evidence**: collect public reviewer concerns and accepted-paper author response patterns from recent ICLR/OpenReview forums.
-3. **Synthesize review patterns**: turn historical reviewer concerns into a reusable area-specific review-response bank.
-4. **Generate a child review skill**: package the area profile, evidence bank, subtle logic flaw checks, and review output contract into a reusable skill.
+It is now an evidence-orchestrating meta-skill, not just an OpenReview scraper. It builds area-specific reviewer skills through:
 
-## Usage (Assuming Installed)
+- an OpenReview-first evidence gate;
+- per-area `20` public-review-paper sufficiency checks over the runtime current year and two previous years;
+- high-level-vs-general reviewer taste modeling when OpenReview evidence is sparse; this is sample-contrast based review modeling, not representation contrastive learning;
+- optional deep-read matched contrastive analysis for curated sample sets;
+- privacy-preserving packaging that excludes raw sample identities and private source maps;
+- runtime literature retrieval inside generated child skills, with top-conference/top-journal priority;
+- a full-text reading gate before strong novelty or baseline judgments;
+- mandatory standalone subtle logic flaw audit output.
 
-This meta-skill is intended to be used in **Codex** to generate research-area-specific reviewer skills.
+![Research Review Skill Factory architecture diagram](diagram_en.png)
 
-After installing the skill, invoke it directly:
+## English Usage Examples
+
+Use the meta-skill in Codex by invoking `$research-review-skill-factory` directly in the conversation.
+
+Build an OpenReview-first area reviewer:
 
 ```text
-Use $research-review-skill-factory to build a custom review skill for the research area “semi-supervised federated learning + representation learning theory”. Ground it in recent ICLR OpenReview reviewer concerns and accepted-paper author responses, and include reviewer focus areas, rebuttal strategies, subtle logic flaw checks, and light / moderate / major revision advice.
+Use $research-review-skill-factory to build a custom review skill for graph neural networks and oversmoothing. Enforce the 20-public-review OpenReview gate over the runtime current year and two previous years. If the area is sparse, switch to high/general sample-contrast reviewer taste modeling.
 ```
 
-A shorter example:
+Build a sparse-field sample-contrast reviewer:
 
 ```text
-Use $research-review-skill-factory to generate an OpenReview-grounded review skill for graph neural networks and oversmoothing.
+Use $research-review-skill-factory to build a reviewer skill for privacy-preserving federated fine-tuning. Use my high-level and general-level sample folders if OpenReview evidence is sparse. Anonymize all sample identities, perform blind single-paper reviews before pairwise comparison, and generate only a child-safe sample-contrast reviewer taste profile.
 ```
 
-The usual workflow is:
+Use a generated child reviewer:
 
-1. build a research-area profile;
-2. plan OpenReview search queries;
-3. retrieve or read relevant OpenReview evidence;
-4. synthesize an area-specific review-response bank;
-5. generate and validate a new review skill for that area.
+```text
+Use the generated federated-learning-reviewer skill to review this paper. Before writing the review, build a runtime literature context pack from top-conference, top-journal, official-proceedings, OpenReview, recent, and canonical related work. Apply the full-text reading gate and include a standalone subtle logic flaw audit.
+```
 
-The generated research-area-specific reviewer skill is best used in **ChatGPT web** with **extended thinking** enabled. Put the generated reviewer skill ZIP file into the ChatGPT project **Sources**, then ask ChatGPT to review the target paper according to the skill in that ZIP file.
+## Example: Federated Learning Reviewer Child Skill
+
+The [example/](example/) directory contains a generated federated learning reviewer skill: [example/federated-learning-reviewer-v1.0.1-build/](example/federated-learning-reviewer-v1.0.1-build/).
+
+[child-skills/federated-learning-reviewer/](example/federated-learning-reviewer-v1.0.1-build/child-skills/federated-learning-reviewer/) is the generated Codex child skill, [federated-learning-reviewer-v1.0.1.zip](example/federated-learning-reviewer-v1.0.1-build/federated-learning-reviewer-v1.0.1.zip) is the distributable package, and [inputs/](example/federated-learning-reviewer-v1.0.1-build/inputs/) keeps the area profile and anonymized reviewer-taste inputs used to build the example.
 
 ## License
 
