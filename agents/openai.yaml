@@ -1,4 +1,0 @@
-interface:
-  display_name: "Research Review Skill Factory"
-  short_description: "Build custom review skills for research areas."
-  default_prompt: "Use $research-review-skill-factory to build a custom OpenReview-grounded review skill for this research area and problem set."

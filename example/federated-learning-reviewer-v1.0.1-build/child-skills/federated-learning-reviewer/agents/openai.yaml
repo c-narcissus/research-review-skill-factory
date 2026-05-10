@@ -1,4 +1,0 @@
-interface:
-  display_name: "Federated Learning Reviewer"
-  short_description: "Custom contrastive area review skill."
-  default_prompt: "Use $federated-learning-reviewer to review this paper in the target research area."
