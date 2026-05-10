@@ -72,12 +72,18 @@
 
 ## 使用方法（自然语言调用）
 
-这个仓库里的 skill 面向 Codex 使用。在 Codex 对话中可以直接调用这个元 skill：
+这个仓库里的 skill 面向 Codex 使用。推荐使用方式是：
+
+1. 新建一个项目。
+2. 将仓库根目录下的 [research-review-skill-factory-main.zip](research-review-skill-factory-main.zip) 放入这个新项目的资料或文件区。
+3. 在对话中参考下面的提示词例子，明确要求使用 `research-review-skill-factory-main.zip` 里的 skill（`research-review-skill-factory`）。
+
+注意：这里要放入新项目的是根目录的 `research-review-skill-factory-main.zip`。`example/federated-learning-reviewer-v1.0.1-build/federated-learning-reviewer-v1.0.1.zip` 是已经生成好的联邦学习审稿 child skill 示例，不是这个元 skill 的安装包。
 
 注意：如果 OpenReview 里的公开审稿意见不足，factory 需要进入样本对照式审稿品味建模。此时用户应当自己提供两类论文材料，并分别放在两个不同文件夹下，例如 `./papers/high_level/` 和 `./papers/general_level/`，分别表示高水平论文和一般水平论文。Codex 也可能被要求先自动检索和收集这两类样本，但当前 skill 没有把“自动收集样本”设定为内置步骤；为了保证过程可审计，推荐显式提供两个文件夹路径。
 
 ```text
-使用 $research-review-skill-factory，为“半监督联邦学习 + 表征学习理论”生成一个专属审稿 skill。
+请使用 research-review-skill-factory-main.zip 里的 skill（research-review-skill-factory），为“半监督联邦学习 + 表征学习理论”生成一个专属审稿 skill。
 请先对每个研究领域分别执行最近三年的 OpenReview 证据门控：每个领域至少需要 20 篇带公开审稿意见的相关论文。
 如果某个领域证据不足，请使用我提供的两个样本文件夹进行匿名对照式审稿品味建模：./papers/high_level/ 作为高水平论文样本，./papers/general_level/ 作为一般水平论文样本，并生成 child skill。
 生成的 child skill 需要包含 runtime literature context module：审稿时优先检索顶会、顶刊、官方 proceedings 和 OpenReview 相关工作，并执行 full-text reading gate。
@@ -86,21 +92,21 @@
 短例子：
 
 ```text
-使用 $research-review-skill-factory，为 graph neural networks and oversmoothing 生成一个 OpenReview-first 审稿 skill。
+请使用 research-review-skill-factory-main.zip 里的 skill（research-review-skill-factory），为 graph neural networks and oversmoothing 生成一个 OpenReview-first 审稿 skill。
 如果 OpenReview 证据不足，则切换到 high/general 样本对照式审稿品味建模；高水平论文和一般水平论文需要分别来自两个文件夹。
 ```
 
 多领域例子：
 
 ```text
-使用 $research-review-skill-factory，为 “federated semi-supervised learning” 和 “representation learning theory” 生成审稿 skill。
+请使用 research-review-skill-factory-main.zip 里的 skill（research-review-skill-factory），为 “federated semi-supervised learning” 和 “representation learning theory” 生成审稿 skill。
 两个领域必须分别满足最近三年 20 篇公开 review 论文的门槛，不能合并计数。
 ```
 
 样本对照建模例子：
 
 ```text
-使用 $research-review-skill-factory，为 federated learning 生成审稿 skill。
+请使用 research-review-skill-factory-main.zip 里的 skill（research-review-skill-factory），为 federated learning 生成审稿 skill。
 OpenReview 证据不足时，使用 ./FL_PDFs/录用 作为 high-level 样本，使用 ./FL_PDFs/没录用_撤稿 作为 general-level 样本。
 请先对样本匿名化，然后选择同领域 high/general pairs，逐篇 blind-review，再做 pairwise comparison，最后归纳 reviewer taste。这里的 `contrastive` 只表示审稿样本对照，不是机器学习中的 contrastive representation learning。
 ```
@@ -108,7 +114,7 @@ OpenReview 证据不足时，使用 ./FL_PDFs/录用 作为 high-level 样本，
 严格深读样本对照例子：
 
 ```text
-使用 $research-review-skill-factory，为 privacy-preserving federated fine-tuning 生成审稿 skill。
+请使用 research-review-skill-factory-main.zip 里的 skill（research-review-skill-factory），为 privacy-preserving federated fine-tuning 生成审稿 skill。
 请使用 deep-read matched contrastive module：先精读 curated high-level papers，再为每篇 high-level paper 匹配同子领域或近邻子领域的 general-level paper，逐对比较并归纳审稿关注点。
 详细 deep-reading reports、pair analyses 和 rationale reports 只保留为外部构建产物，不进入 child skill。
 ```
@@ -116,7 +122,7 @@ OpenReview 证据不足时，使用 ./FL_PDFs/录用 作为 high-level 样本，
 生成后的 child skill 使用例子：
 
 ```text
-请用 federated-learning-reviewer 审稿这篇论文。
+请使用生成的 federated-learning-reviewer-v1.0.1.zip 里的 skill（federated-learning-reviewer）审稿这篇论文。
 审稿前请先构建 runtime literature context pack，优先检索顶会/顶刊/官方 proceedings/OpenReview 相关工作。
 对最近邻相关工作和预期 baseline 执行 full-text reading gate，并在最终报告中单独输出 Subtle Logic Flaw Audit。
 ```
@@ -173,26 +179,28 @@ It is now an evidence-orchestrating meta-skill, not just an OpenReview scraper. 
 
 ## English Usage Examples
 
-Use the meta-skill in Codex by invoking `$research-review-skill-factory` directly in the conversation.
+Use this meta-skill in Codex by creating a new project, adding the root [research-review-skill-factory-main.zip](research-review-skill-factory-main.zip) file to that project, and then using prompts like the examples below.
+
+For the factory workflow, the ZIP to add is the root `research-review-skill-factory-main.zip`. The `example/federated-learning-reviewer-v1.0.1-build/federated-learning-reviewer-v1.0.1.zip` file is a generated federated-learning reviewer child skill example, not the factory package.
 
 Important: if OpenReview does not provide enough public review evidence, the factory falls back to sample-contrast reviewer taste modeling. In that case, the user should provide two paper sets in two separate folders, for example `./papers/high_level/` and `./papers/general_level/`, representing high-level papers and general-level papers. Codex could also be asked to collect those two sample sets automatically first, but this skill does not currently define automatic sample collection as an internal step. For an auditable workflow, explicitly provide the two folder paths.
 
 Build an OpenReview-first area reviewer:
 
 ```text
-Use $research-review-skill-factory to build a custom review skill for graph neural networks and oversmoothing. Enforce the 20-public-review OpenReview gate over the runtime current year and two previous years. If the area is sparse, switch to high/general sample-contrast reviewer taste modeling, using two separate folders for high-level papers and general-level papers.
+Please use the skill (research-review-skill-factory) inside research-review-skill-factory-main.zip to build a custom review skill for graph neural networks and oversmoothing. Enforce the 20-public-review OpenReview gate over the runtime current year and two previous years. If the area is sparse, switch to high/general sample-contrast reviewer taste modeling, using two separate folders for high-level papers and general-level papers.
 ```
 
 Build a sparse-field sample-contrast reviewer:
 
 ```text
-Use $research-review-skill-factory to build a reviewer skill for privacy-preserving federated fine-tuning. If OpenReview evidence is sparse, use ./papers/high_level/ as the high-level sample folder and ./papers/general_level/ as the general-level sample folder. Anonymize all sample identities, perform blind single-paper reviews before pairwise comparison, and generate only a child-safe sample-contrast reviewer taste profile.
+Please use the skill (research-review-skill-factory) inside research-review-skill-factory-main.zip to build a reviewer skill for privacy-preserving federated fine-tuning. If OpenReview evidence is sparse, use ./papers/high_level/ as the high-level sample folder and ./papers/general_level/ as the general-level sample folder. Anonymize all sample identities, perform blind single-paper reviews before pairwise comparison, and generate only a child-safe sample-contrast reviewer taste profile.
 ```
 
 Use a generated child reviewer:
 
 ```text
-Use the generated federated-learning-reviewer skill to review this paper. Before writing the review, build a runtime literature context pack from top-conference, top-journal, official-proceedings, OpenReview, recent, and canonical related work. Apply the full-text reading gate and include a standalone subtle logic flaw audit.
+Please use the skill (federated-learning-reviewer) inside the generated federated-learning-reviewer-v1.0.1.zip to review this paper. Before writing the review, build a runtime literature context pack from top-conference, top-journal, official-proceedings, OpenReview, recent, and canonical related work. Apply the full-text reading gate and include a standalone subtle logic flaw audit.
 ```
 
 ## Example: Federated Learning Reviewer Child Skill
