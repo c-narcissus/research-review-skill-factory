@@ -6,11 +6,11 @@
 
 `research-review-skill-factory` 是一个用于生成领域级审稿 skill 的元 skill。最早版本主要是 OpenReview-grounded：定义研究领域画像，检索公开审稿意见，归纳 reviewer concerns 和 accepted-paper response patterns，再生成一个可复用的领域审稿 skill。
 
+![Research Review Skill Factory 中文架构图](diagram_ch.png)
+
 最新版本已经升级为一个更完整的“证据编排型审稿 skill 工厂”：它仍然优先使用 OpenReview 公开审稿证据，但会先做严格的证据充足性门控；当 OpenReview 证据不足时，会切换到匿名化的高水平论文 vs 一般水平论文对照式审稿品味建模；生成出的 child skill 在实际审稿时还必须动态检索顶会顶刊相关工作、执行全文阅读 gate，并输出独立的细微逻辑问题审计。
 
 这个元 skill 的主要使用场景是在 Codex 里用自然语言调用：让 Codex 完成证据检索、样本对照建模、child skill 生成、打包和验证。生成后的 child skill 也面向 Codex 审稿流程使用。
-
-![Research Review Skill Factory 中文架构图](diagram_ch.png)
 
 ## 相比最早版本的重大改进
 
@@ -156,6 +156,8 @@ OpenReview 证据不足时，使用 ./FL_PDFs/录用 作为 high-level 样本，
 
 The intended operating environment is Codex: invoke this meta-skill in Codex with natural language, let Codex run the evidence workflow, generate and validate the child skill, and then use the generated child skill inside Codex review sessions.
 
+![Research Review Skill Factory architecture diagram](diagram_en.png)
+
 It is now an evidence-orchestrating meta-skill, not just an OpenReview scraper. It builds area-specific reviewer skills through:
 
 - an OpenReview-first evidence gate;
@@ -166,8 +168,6 @@ It is now an evidence-orchestrating meta-skill, not just an OpenReview scraper. 
 - runtime literature retrieval inside generated child skills, with top-conference/top-journal priority;
 - a full-text reading gate before strong novelty or baseline judgments;
 - mandatory standalone subtle logic flaw audit output.
-
-![Research Review Skill Factory architecture diagram](diagram_en.png)
 
 ## English Usage Examples
 
